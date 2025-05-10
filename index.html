@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Quotes Viewer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Tooltip becomes visible on hover */
+    .tooltip-container:hover .tooltip-text {
+      display: block;
+    }
+    /* Tooltip styling */
+    .tooltip-text {
+      display: none;
+      position: absolute;
+      z-index: 50;
+      top: 100%;
+      left: 0;
+      background-color: #fff;
+      padding: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      white-space: pre-wrap;
+      min-width: 200px;
+      max-width: 300px;
+    }
+    /* Dropzone style for file upload */
+    #dropzone {
+      border: 2px dashed #9AE6B4;
+      padding: 2rem;
+      border-radius: 0.5rem;
+      background-color: #F0FFF4;
+      text-align: center;
+      color: #2F855A;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    /* Dropzone hover effect */
+    #dropzone.dragover {
+      background-color: #C6F6D5;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col items-center p-8">
+
+  <h1 class="text-3xl font-bold text-green-700 mb-4">📋 Design & Dev</h1>
+
+  <!-- Dropzone input for file selection -->
+  <div id="dropzone" class="mb-6 w-full max-w-xl">
+    Drag & drop your <strong>.tsv</strong> file here or click to select
+    <input type="file" id="tsvFileInput" accept=".tsv" class="hidden" />
+  </div>
+
+  <div class="w-full">
+    <div class="overflow-x-auto bg-white shadow-md rounded-lg">
+      <table id="csvTable" class="min-w-full text-sm text-left border-collapse">
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('tsvFileInput');
+
+    // Trigger file input on dropzone click
+    dropzone.addEventListener('click', () => fileInput.click());
+
+    // Handle manual file selection
+    fileInput.addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (file && file.name.endsWith('.tsv')) {
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          const text = event.target.result;
+          displayTSV(text); // Process TSV file
+        };
+        reader.readAsText(file);
+      } else {
+        alert('Please select a valid .tsv file.');
+      }
+    });
+
+    // Highlight dropzone on dragover
+    dropzone.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+
+    // Remove highlight on dragleave
+    dropzone.addEventListener('dragleave', function () {
+      dropzone.classList.remove('dragover');
+    });
+
+    // Handle dropped file
+    dropzone.addEventListener('drop', function (e) {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file && file.name.endsWith('.tsv')) {
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          const text = event.target.result;
+          displayTSV(text); // Process TSV content
+        };
+        reader.readAsText(file);
+      } else {
+        alert('Please drop a valid .tsv file.');
+      }
+    });
+
+    // Convert TSV content to HTML table
+    function displayTSV(text) {
+      const rows = text.trim().split(/\r?\n/).map(row => row.split('\t'));
+      const table = document.getElementById('csvTable');
+      table.innerHTML = '';
+
+      if (rows.length === 0 || rows[0].length === 0) return;
+
+      // Build table header
+      const thead = document.createElement('thead');
+      const headRow = document.createElement('tr');
+      rows[0].forEach(header => {
+        const th = document.createElement('th');
+        th.textContent = header.trim();
+        th.className = 'bg-green-700 text-white px-4 py-2 text-center';
+        headRow.appendChild(th);
+      });
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+
+      // Build table body
+      const tbody = document.createElement('tbody');
+      rows.slice(1).forEach((row, i) => {
+        if (row.length === 0) return;
+        const tr = document.createElement('tr');
+        tr.className = i % 2 === 0 ? 'bg-gray-100' : 'bg-white';
+
+        row.forEach(cell => {
+          const td = document.createElement('td');
+          const content = cell.trim();
+          td.className = 'border-t border-gray-300 px-4 py-2 align-top relative group max-w-xs';
+
+          // Tooltip wrapper
+          const container = document.createElement('div');
+          container.className = 'tooltip-container relative group';
+
+          // Display clipped text
+          const textDiv = document.createElement('div');
+          textDiv.textContent = content;
+          textDiv.className = 'overflow-hidden line-clamp-2 cursor-pointer hover:underline hover:bg-green-100 transition-all duration-150 rounded p-1';
+
+          // Copy text on click with hover class
+          textDiv.onclick = () => {
+            textDiv.classList.add('hover:bg-green-300');
+            navigator.clipboard.writeText(content);
+            setTimeout(() => textDiv.classList.remove('hover:bg-green-300'), 800);
+          };
+
+          // Tooltip with full content
+          const tooltip = document.createElement('div');
+          tooltip.className = 'tooltip-text text-xs text-gray-800';
+          tooltip.textContent = content;
+
+          container.appendChild(textDiv);
+          container.appendChild(tooltip);
+          td.appendChild(container);
+          tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+      });
+
+      table.appendChild(tbody);
+    }
+  </script>
+</body>
+</html>
